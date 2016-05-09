@@ -4,7 +4,6 @@ use strict;
 
 use Data::Dumper;
 $Data::Dumper::Indent= 1;
-
 # use MongoDB;
 use PAF::JobQueue;
 use Util::JSON;
@@ -23,6 +22,7 @@ while (defined (my $arg= shift (@ARGV)))
 
        if ($opt eq 'direct') { $op_mode= 'direct'; }
     elsif ($opt eq 'watch') { $op_mode= 'watch'; }
+    elsif ($opt eq 'config') { $fnm_config= $val||shift (@ARGV); }
   }
   elsif ($arg =~ /^-(.+)/)
   {
@@ -73,7 +73,7 @@ sub process_job_queue
     }
     print "job: ", Dumper ($job);
 
-    my $rc= process_image ($job->{pid});
+    my $rc= process_image ($job->{pid}, $job->{idhash});
 
     if (!defined ($rc))
     {
@@ -94,15 +94,26 @@ sub process_job_queue
 sub process_image
 {
   my $pid= shift;
+  my $idhash= shift;
 
   my $tmp_dir= $config->{temp_path};
   system ('mkdir', '-p', $tmp_dir) unless (-d $tmp_dir);
 
   # TODO: parametrize....
-  my $url= "https://fedora.volare.vorarlberg.at/fedora/get/${pid}/bdef:Content/download";
+  my $url= "https://".$config->{fedorabaseurl}."/fedora/get/${pid}/bdef:Content/download";
 
   my $img_fnm= $pid; $img_fnm=~ s#:#_#g;
-  my $out_img= join ('/', $config->{store}, $img_fnm.'.tif');
+  my $out_img;
+  if(defined($idhash) && $idhash =~ /\b([a-f0-9]{40})\b/){
+    my $lvl1= substr($idhash, 0, 1);
+    my $lvl2= substr($idhash, 1, 1);
+    my $out_dir= join ('/', $config->{store}, $lvl1, $lvl2);
+    system ('mkdir', '-p', $out_dir) unless (-d $out_dir);
+    $out_img= join ('/', $out_dir, $idhash.'.tif');
+  }else{
+    print "idhash[$idhash] is not defined or is not a SHA-1 hash\n";
+    $out_img= join ('/', $config->{store}, $img_fnm.'.tif');
+  }
   my $tmp_img= join ('/', $tmp_dir, $img_fnm);
 
   my @curl= (qw(curl -L), $url, '-o', $tmp_img);
