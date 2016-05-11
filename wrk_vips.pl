@@ -5,6 +5,8 @@ use strict;
 use Data::Dumper;
 $Data::Dumper::Indent= 1;
 # use MongoDB;
+use lib '/home/pige/work/phaidra/forge/perl';
+use lib '/home/pige/work/sf/aix-pm/modules/util/';
 use PAF::JobQueue;
 use Util::JSON;
 
@@ -44,7 +46,7 @@ if ($op_mode eq 'direct')
 elsif ($op_mode eq 'watch') {}
 else
 {
-  usage();
+  #usage();
   exit(0);
 }
 
@@ -131,7 +133,7 @@ sub process_image
   # TODO: check ....
 
   #
-  my @vips= (qw(/usr/bin/vips im_vips2tiff --vips-progress --vips-concurrency=4), $tmp_img, $out_img.':deflate,tile:256x256,pyramid');
+  my @vips= (qw(/usr/bin/vips im_vips2tiff --vips-progress --vips-concurrency=4), $tmp_img, $out_img.':jpeg:85,tile:256x256,pyramid');
   my $vips= join (' ', @vips);
   print "vips: [$vips]\n";
   my $vips_txt= `@vips 2>&1`;
