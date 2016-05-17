@@ -132,8 +132,23 @@ sub process_image
   my @tmp_st= stat(_);
   # TODO: check ....
 
-  #
-  my @vips= (qw(/usr/bin/vips im_vips2tiff --vips-progress --vips-concurrency=4), $tmp_img, $out_img.':jpeg:85,tile:256x256,pyramid');
+  # we have to cast 16bit to 8bit when using jpeg compression
+  my $cast_img = $tmp_img.'.v'; # vips format, see https://github.com/jcupitt/libvips/issues/8#issuecomment-12292039
+  my @cast= (qw(/usr/bin/vips im_msb), $tmp_img, $cast_img);
+  my $cast= join (' ', @cast);
+  print "cast: [$cast]\n";
+  my $cast_txt= `@cast 2>&1`;
+  print "cast_txt=[$cast_txt]\n";
+  my @cast_lines= x_lines ($cast_txt);
+
+  unless (-f $cast_img)
+  {
+      print "ATTN: could not save [$cast_img] using cast=[$cast]\n";
+      return undef;
+  }
+
+
+  my @vips= (qw(/usr/bin/vips im_vips2tiff --vips-progress --vips-concurrency=4), $tmp_img.'.v', $out_img.':jpeg:85,tile:256x256,pyramid');
   my $vips= join (' ', @vips);
   print "vips: [$vips]\n";
   my $vips_txt= `@vips 2>&1`;
@@ -148,9 +163,10 @@ sub process_image
   my @out_st= stat(_);
   # TODO: check ....
 
+  unlink ($cast_img);
   unlink ($tmp_img);
 
-  return { 'conversion' => 'ok', 'image' => $out_img, vips_lines => \@vips_lines, curl_lines => \@curl_lines };
+  return { 'conversion' => 'ok', 'image' => $out_img, vips_lines => \@vips_lines, curl_lines => \@curl_lines, cast_lines => \@cast_lines };
 }
 
 sub x_lines
