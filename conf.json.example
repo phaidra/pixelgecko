@@ -1,0 +1,13 @@
+{
+  "mongodb" :
+  {
+    "host"     : "host",
+    "db_name"  : "dbname",
+    "username" : "username",
+    "password" : "secret",
+    "col"      : "jobs"
+  },
+  "store" : "/var/www/iipsrv/data/myinstance",
+  "temp_path" : "/tmp/myinstance",
+  "fedorabaseurl" : "myinstance fedora url" 
+}
