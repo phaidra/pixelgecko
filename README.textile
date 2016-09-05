@@ -10,3 +10,7 @@ libjson-perl
 libjson-pps-perl
 libjson-xs-perl
 
+h3. Run
+
+./wrk_vips.pl --config conf.json --watch
+
