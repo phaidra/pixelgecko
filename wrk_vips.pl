@@ -132,6 +132,22 @@ sub process_image
   my @tmp_st= stat(_);
   # TODO: check ....
 
+  # we have to autorotate image because IIPServer doesn't return EXIF Orientation metadata field (at least for natively JPEG images)
+  # See https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-autorot
+  my $rotate_img = $tmp_img.'.v';
+  my @rotate= (qw(/usr/bin/vips autorot), $tmp_img, $rotate_img);
+  my $rotate= join (' ', @rotate);
+  print "rotate: [$rotate]\n";
+  my $rotate_txt= `@rotate 2>&1`;
+  print "rotate_txt=[$rotate_txt]\n";
+  my @rotate_lines= x_lines ($rotate_txt);
+
+  unless (-f $rotate_img)
+  {
+      print "ATTN: could not save [$rotate_img] using rotate=[$rotate]\n";
+      return undef;
+  }
+
   my @vips= (qw(/usr/bin/vips im_vips2tiff --vips-progress --vips-concurrency=4), $tmp_img.'.v', $out_img.':jpeg:85,tile:256x256,pyramid');
   my $vips= join (' ', @vips);
   print "vips: [$vips]\n";
@@ -147,9 +163,10 @@ sub process_image
   my @out_st= stat(_);
   # TODO: check ....
 
+  unlink ($rotate_img);
   unlink ($tmp_img);
 
-  return { 'conversion' => 'ok', 'image' => $out_img, vips_lines => \@vips_lines, curl_lines => \@curl_lines };
+  return { 'conversion' => 'ok', 'image' => $out_img, vips_lines => \@vips_lines, curl_lines => \@curl_lines, rotate_lines => \@rotate_lines };
 }
 
 sub x_lines
