@@ -148,7 +148,7 @@ sub process_image
       return undef;
   }
 
-  my @vips= (qw(/usr/bin/vips im_vips2tiff --vips-progress --vips-concurrency=4), $tmp_img.'.v', $out_img.':jpeg:85,tile:256x256,pyramid');
+  my @vips= (qw(/usr/bin/vips tiffsave --vips-progress --vips-concurrency 4), $tmp_img.'.v', $out_img, qw(--tile --pyramid --compression jpeg --Q 85 --tile-width 256 --tile-height 256));
   my $vips= join (' ', @vips);
   print "vips: [$vips]\n";
   my $vips_txt= `@vips 2>&1`;
