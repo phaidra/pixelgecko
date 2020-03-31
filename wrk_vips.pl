@@ -132,23 +132,23 @@ sub process_image
   my @tmp_st= stat(_);
   # TODO: check ....
 
-  # we have to cast 16bit to 8bit when using jpeg compression
-  my $cast_img = $tmp_img.'.v'; # vips format, see https://github.com/jcupitt/libvips/issues/8#issuecomment-12292039
-  my @cast= (qw(/usr/bin/vips im_msb), $tmp_img, $cast_img);
-  my $cast= join (' ', @cast);
-  print "cast: [$cast]\n";
-  my $cast_txt= `@cast 2>&1`;
-  print "cast_txt=[$cast_txt]\n";
-  my @cast_lines= x_lines ($cast_txt);
+  # we have to autorotate image because IIPServer doesn't return EXIF Orientation metadata field (at least for natively JPEG images)
+  # See https://libvips.github.io/libvips/API/current/libvips-conversion.html#vips-autorot
+  my $rotate_img = $tmp_img.'.v';
+  my @rotate= (qw(/usr/bin/vips autorot), $tmp_img, $rotate_img);
+  my $rotate= join (' ', @rotate);
+  print "rotate: [$rotate]\n";
+  my $rotate_txt= `@rotate 2>&1`;
+  print "rotate_txt=[$rotate_txt]\n";
+  my @rotate_lines= x_lines ($rotate_txt);
 
-  unless (-f $cast_img)
+  unless (-f $rotate_img)
   {
-      print "ATTN: could not save [$cast_img] using cast=[$cast]\n";
+      print "ATTN: could not save [$rotate_img] using rotate=[$rotate]\n";
       return undef;
   }
 
-
-  my @vips= (qw(/usr/bin/vips im_vips2tiff --vips-progress --vips-concurrency=4), $tmp_img.'.v', $out_img.':jpeg:85,tile:256x256,pyramid');
+  my @vips= (qw(/usr/bin/vips tiffsave --vips-progress --vips-concurrency 4), $tmp_img.'.v', $out_img, qw(--tile --pyramid --compression jpeg --Q 85 --tile-width 256 --tile-height 256));
   my $vips= join (' ', @vips);
   print "vips: [$vips]\n";
   my $vips_txt= `@vips 2>&1`;
@@ -163,10 +163,10 @@ sub process_image
   my @out_st= stat(_);
   # TODO: check ....
 
-  unlink ($cast_img);
+  unlink ($rotate_img);
   unlink ($tmp_img);
 
-  return { 'conversion' => 'ok', 'image' => $out_img, vips_lines => \@vips_lines, curl_lines => \@curl_lines, cast_lines => \@cast_lines };
+  return { 'conversion' => 'ok', 'image' => $out_img, vips_lines => \@vips_lines, curl_lines => \@curl_lines, rotate_lines => \@rotate_lines };
 }
 
 sub x_lines
